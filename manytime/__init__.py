@@ -31,14 +31,13 @@ def track_spaces(text: bytearray):
 
 def many_time_pad_attack(ciphertexts: List[bytes]):
     """Perform a many time pad attack"""
-
     longest_text = max(len(text) for text in ciphertexts)
     final_key = [None for _ in range(longest_text)]
 
     # Identify key values by assuming that punctuation characters are most likely going to be spaces
     for main_index, main_ciphertext in enumerate(ciphertexts):
-
         main_counter = collections.Counter()
+
         for secondary_index, secondary_ciphertext in enumerate(ciphertexts):
             # Dont need to XOR itself
             if main_index != secondary_index:
@@ -53,22 +52,21 @@ def many_time_pad_attack(ciphertexts: List[bytes]):
                 final_key[index] = ord(' ') ^ main_ciphertext[index]
 
 
-    def partial_decrypt(key, ciphertext):
-        return [chr(k ^ c) if k is not None else '*' for k, c in zip(key, ciphertext)]
+    def partial_decrypt(key, ciphertext, unknown_character='*'):
+        """Decrypt ciphertext using key
+        Decrypting a letter using an unknown key element will result in unknown_character"""
+        return [chr(k ^ c) if k is not None else unknown_character for k, c in zip(key, ciphertext)]
 
 
-    # Begin decryption loop
-    while True:
+    def on_change_hook(level, index, char):
+        """Called when the user makes a character change"""
+        nonlocal final_key
 
-        def on_change_hook(level, index, char):
-            nonlocal final_key
+        ciphertext = ciphertexts[level]
+        final_key[index] = None if char in KEYS_EXIT else char ^ ciphertext[index]
 
-            ciphertext = ciphertexts[level]
-            final_key[index] = None if char in KEYS_EXIT else char ^ ciphertext[index]
+        texts = [''.join(partial_decrypt(final_key, ciphertext)) for ciphertext in ciphertexts]
+        return texts
 
-            texts = [''.join(partial_decrypt(final_key, ciphertext)) for ciphertext in ciphertexts]
-            texts[level] = ''.join(partial_decrypt(final_key, ciphertext))
-            return texts
-
-        partial_decrypts = [''.join(partial_decrypt(final_key, ciphertext)) for ciphertext in ciphertexts]
-        Interactive(partial_decrypts, on_change_hook=on_change_hook).start()
+    starting_decryptions = [''.join(partial_decrypt(final_key, ciphertext)) for ciphertext in ciphertexts]
+    Interactive(starting_decryptions, on_change_hook=on_change_hook).start()
