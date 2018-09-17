@@ -1,119 +1,132 @@
-import curses
-from enum import Enum
+import urwid
 
 
-class Stage(Enum):
-    SELECTION = 1
-    REPLACEMENT = 2
+EXCLUDE_KEYS = {
+    'esc': 27,
+    ' ': 32
+}
+
+def partial_decrypt(key, ciphertext, unknown_character='*'):
+    """
+    Decrypt ciphertext using key
+    Decrypting a letter using an unknown key element will result in unknown_character
+    """
+    return [chr(k ^ c) if k is not None else unknown_character for k, c in zip(key, ciphertext)]
 
 
-KEYS_UP = (curses.KEY_UP,)
-KEYS_DOWN = (curses.KEY_DOWN,)
-KEYS_ENTER = (curses.KEY_ENTER, ord('\n'), ord('\r'))
-KEYS_RIGHT = (curses.KEY_RIGHT,)
-KEYS_LEFT = (curses.KEY_LEFT,)
-KEYS_EXIT = (27,)
+class DecryptionsListBox(urwid.ListBox):
+    def __init__(self, ciphertexts, key):
+        self.ciphertexts = ciphertexts
+        self.key = key
+
+        partial_decryptions = [partial_decrypt(key, c) for c in ciphertexts]
+
+        body = urwid.SimpleFocusListWalker([
+            urwid.Pile([
+                urwid.Edit(caption=f'{i}| ', edit_text=''.join(d)) for i, d in enumerate(partial_decryptions)
+            ])
+        ])
+        super(DecryptionsListBox, self).__init__(body)
+
+        # self.focus.focus_position = self.selected_decryption
+        # self.focus[self.selected_decryption].edit_pos = self.letter_position
+
+    # def _get_current_decryption(self) -> str:
+    #     return self.decryptions[self.selected_decryption]
+
+    # def _move_down(self, step: int = 1) -> None:
+    #     self.selected_decryption += step
+    #     if self.selected_decryption >= len(self.decryptions):
+    #         self.selected_decryption = 0
+
+    #     self.focus.focus_position = self.selected_decryption
+
+    # def _move_up(self, step: int = 1) -> None:
+    #     self.selected_decryption -= step
+    #     if self.selected_decryption < 0:
+    #         self.selected_decryption = len(self.decryptions) - 1
+
+    #     self.focus.focus_position = self.selected_decryption
+
+    # def _move_left(self, step=1):
+    #     self.letter_position -= step
+    #     if self.letter_position < 0:
+    #         self.letter_position = len(self._get_current_decryption()) - 1
+
+    #     self.focus[self.selected_decryption].edit_pos = self.letter_position
+
+    # def _move_right(self, step=1):
+    #     self.letter_position += step
+    #     if self.letter_position >= len(self._get_current_decryption()):
+    #         self.letter_position = len(self._get_current_decryption()) - 1
+
+    #     self.focus[self.selected_decryption].edit_pos = self.letter_position
+
+    def _edit_decryption(self, letter: str) -> None:
+        """Edit a decryption by modifying the key"""
+        ciphertext = self.ciphertexts[self.focus.focus_position]
+        index = self.focus[self.focus.focus_position].edit_pos
+
+        # Update the key
+        self.key[index] = None if letter == 'esc' else ord(letter) ^ ciphertext[index]
+
+        # Update all decryptions
+        new_decryptions = [partial_decrypt(self.key, c) for c in self.ciphertexts]
+        for widget, decryption in zip(self.focus.widget_list, new_decryptions):
+            widget.edit_text = ''.join(decryption)
+
+        # TODO: Change key value in the key box
 
 
-class Interactive:
-    """Manages an interactive decryption session"""
 
-    def __init__(self, texts, indicator='^', default_index=0, on_change_hook=None):
-        """Initialise an Interactive session for the user"""
-        self.texts = texts
-        self.indicator = indicator
-        self.index = default_index
-        self.level = 0
-        self.stage = Stage.SELECTION
-        self.on_change_hook = on_change_hook
-
-    def start(self):
-        """Start an interactive session"""
-        return curses.wrapper(self._start)
-
-    def _get_lines(self):
-        line = []
-        for i in range(len(self.texts)):
-            if i == self.level:
-                line += [self.texts[i], ' ' * self.index + self.indicator]
-            else:
-                line += [self.texts[i]]
-
-        if self.stage == Stage.SELECTION:
-            return line, self.index
-        elif self.stage == Stage.REPLACEMENT:
-            line += ['Enter replacement letter: ']
-            return line, self.index
-
-    def _draw(self):
-        """Draw the curses UI on the screen"""
-        self.screen.erase()
-
-        x, y = 1, 1
-        max_y, max_x = self.screen.getmaxyx()
-        max_rows = max_y - y  # The max rows we can draw
-
-        lines, current_line = self._get_lines()
-
-        for line in lines:
-            if type(line) is tuple:
-                self.screen.addnstr(y, x, line[0], max_x - 2, line[1])
-            else:
-                self.screen.addnstr(y, x, line, max_x - 2)
-            y += 1
-
-        self.screen.refresh()
+    def keypress(self, size, key):
+        """
+        Not to be confusing, but key in this context refers to keyboard key, not cryptographic key
+        """
+        if urwid.command_map[key] is None or key in EXCLUDE_KEYS:
+            self._edit_decryption(key)
+        else:
+            super(DecryptionsListBox, self).keypress(size, key)
 
 
-    def _move_up(self):
-        self.level -= 1
-        if self.level < 0:
-            self.level = len(self.texts) - 1
+def create_decryptions_box(ciphertexts, key):
+    #decryptions = ["decryption1", "decryption2"]
 
-    def _move_down(self):
-        self.level += 1
-        if self.level >= len(self.texts) - 1:
-            self.level = 0
+    #widget = urwid.Pile([SelectablePudding() for d in decryptions])
+    widget = DecryptionsListBox(ciphertexts, key)
+    #text = urwid.Text(decryptions)
+    # Draw line and title around the text
+    widget = urwid.LineBox(widget, title="Decryptions", title_align="right")
+    #widget = urwid.Padding(widget, align='left')
+    #widget = urwid.Filler(widget, 'top')
+    return widget
 
-    def _move_left(self):
-        self.index -= 1
-        if self.index < 0:
-            self.index = len(self.texts[self.level]) - 1
+def create_key_box(key):
+    key = ''.join(format(x, '02x') if x else '_' for x in key )
 
-    def _move_right(self):
-        self.index += 1
-        if self.index >= len(self.texts[self.level]) - 1:
-            self.index = 0
+    text = urwid.Text(key)
+    # Draw line and title around the text
+    widget = urwid.LineBox(text, title="Key", title_align="right")
+    #widget = urwid.Padding(widget, align='left')
+    #widget = urwid.Filler(widget, 'bottom')
+    return widget
 
-    def _run_loop(self):
-        while True:
-            self._draw()
-            c = self.screen.getch()
+# TODO, global var for keybox to change value?
 
-            if self.stage == Stage.SELECTION:
-                if c in KEYS_RIGHT:
-                    self._move_right()
-                elif c in KEYS_LEFT:
-                    self._move_left()
-                elif c in KEYS_UP:
-                    self._move_up()
-                elif c in KEYS_DOWN:
-                    self._move_down()
-                elif c in KEYS_ENTER:
-                    self.stage = Stage.REPLACEMENT
-                elif c == KEYS_EXIT:
-                    return
+def create_main_box(ciphertexts, key):
+    boxes = [
+        ('weight', 1, create_decryptions_box(ciphertexts, key),),
+        ('pack', create_key_box(key),)
+    ]
+    return urwid.Pile(boxes)
 
-            elif self.stage == Stage.REPLACEMENT:
-                self.texts = self.on_change_hook(self.level, self.index, c)
-                self.stage = Stage.SELECTION
+# decryptions_box = None
+# key_box = None
+# pile = urwid.Pile([decryptions_box, key_box])
 
-    def _config_curses(self):
-        curses.use_default_colors()
-        curses.curs_set(0)
-        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_WHITE)
 
-    def _start(self, screen):
-        self.screen = screen
-        self._config_curses()
-        return self._run_loop()
+#top_level = urwid.Filler(create_decryptions_box())
+
+
+def interactive(ciphertexts, key) -> None:
+    urwid.MainLoop(create_main_box(ciphertexts, key)).run()
