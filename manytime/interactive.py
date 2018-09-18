@@ -4,6 +4,8 @@ Interactive module
 
 import urwid
 
+from manytime.models import Key
+
 from typing import Iterable, Optional
 
 
@@ -31,33 +33,6 @@ def clamp(a: int, x: int, b: int) -> int:
     return max(a, min(x, b))
 
 
-class Key:
-    """
-    A key used for decrypting OTP
-    supports partial decryption
-    """
-    def __init__(self, key: bytearray, unknown_character: str = '_'):
-        self.key = key
-        self.unknown_character = unknown_character
-
-    def __str__(self) -> str:
-        """A string representation of a key is a hex digest"""
-        # Display two unknown characters because each key byte is represented by two hex digits
-        return ''.join(format(k, '02x') if k is not None else 2 * self.unknown_character for k in self.key)
-
-    def __iter__(self) -> iter:
-        """Iterator wrapper over key"""
-        return iter(self.key)
-
-    def __getitem__(self, index: int) -> Optional[str]:
-        """Getter wrapper"""
-        return self.key[index]
-
-    def __setitem__(self, index: int, value: Optional[str]) -> None:
-        """Setter wrapper"""
-        self.key[index] = value
-
-
 def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_') -> Iterable[str]:
     """
     Decrypt ciphertext using key
@@ -67,7 +42,8 @@ def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_
 
 
 class DecryptionsListBox(urwid.ListBox):
-    def __init__(self, ciphertexts, key: Key):
+    """List of decryptions to be interacted with"""
+    def __init__(self, ciphertexts: Iterable[bytearray], key: Key):
         self.ciphertexts = ciphertexts
         self.key = key
 
@@ -123,7 +99,8 @@ class DecryptionsListBox(urwid.ListBox):
         super(DecryptionsListBox, self).keypress(size, key)
 
 
-def create_decryptions_box(ciphertexts: Iterable[bytearray], key: Key):
+def create_decryptions_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.LineBox:
+    """Create a decryptions list box with a border"""
     widget = DecryptionsListBox(ciphertexts, key)
 
     # Draw line and title around the text
@@ -131,7 +108,8 @@ def create_decryptions_box(ciphertexts: Iterable[bytearray], key: Key):
     return widget
 
 
-def create_key_box(key: Key):
+def create_key_view(key: Key) -> urwid.LineBox:
+    """Create a global key text box with a border"""
     global global_key_widget
     global_key_widget = urwid.Text(str(key))
 
@@ -140,13 +118,13 @@ def create_key_box(key: Key):
     return widget
 
 
-def create_main_box(ciphertexts: Iterable[bytearray], key: Key):
+def create_main_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.Pile:
     boxes = [
-        ('weight', 1, create_decryptions_box(ciphertexts, key),),
-        ('pack', create_key_box(key),)
+        ('weight', 1, create_decryptions_view(ciphertexts, key),),
+        ('pack', create_key_view(key),)
     ]
     return urwid.Pile(boxes)
 
 
 def interactive(ciphertexts: Iterable[bytearray], key: Iterable) -> None:
-    urwid.MainLoop(create_main_box(ciphertexts, Key(key))).run()
+    urwid.MainLoop(create_main_view(ciphertexts, Key(key))).run()
