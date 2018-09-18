@@ -42,7 +42,8 @@ class Key:
 
     def __str__(self) -> str:
         """A string representation of a key is a hex digest"""
-        return ''.join(format(k, '02x') if k else self.unknown_character for k in self.key)
+        # Display two unknown characters because each key byte is represented by two hex digits
+        return ''.join(format(k, '02x') if k is not None else 2 * self.unknown_character for k in self.key)
 
     def __iter__(self) -> iter:
         """Iterator wrapper over key"""
@@ -53,8 +54,8 @@ class Key:
         return self.key[index]
 
     def __setitem__(self, index: int, value: Optional[str]) -> None:
+        """Setter wrapper"""
         self.key[index] = value
-
 
 
 def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_') -> Iterable[str]:
