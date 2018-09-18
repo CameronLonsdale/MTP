@@ -1,6 +1,6 @@
-# Many Time Pad - Interactive
+# Many-Time Pad Interactive
 
-Keys in One Time Pad encryption (OTP) should only be used once, when they get reused we can do a Many Time Pad Attack.
+Keys in One-time pad encryption (OTP) should only be used once, when they get reused we can do a Many-time pad attack.
 
 MTP Interactive uses automated cryptanalysis to present a partial decryption which can be solved interactively.
 
@@ -23,7 +23,6 @@ TODO: asciinema demo
 ### Intstructions
 
 TODO: Still changing
-
 
 ## Development
 
