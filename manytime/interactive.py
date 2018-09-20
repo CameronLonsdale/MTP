@@ -14,6 +14,9 @@ NO_KEY = ''
 LEFT = 'left'
 RIGHT = 'right'
 
+# Management keys
+ESCAPE_KEY = 'esc'
+
 # Removal keys
 BACKSPACE = 'backspace'
 DELETE = 'delete'
@@ -26,11 +29,8 @@ EXCLUDE_KEYS = (' ',)
 
 # Global key widget to allow for text updates after creation
 global_key_widget = None
-
-
-def clamp(a: int, x: int, b: int) -> int:
-    """Clamp value x between a and b"""
-    return max(a, min(x, b))
+# Global program widget to allow for menu popup
+global_program = None
 
 
 def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_') -> Iterable[str]:
@@ -39,6 +39,26 @@ def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_
     Decrypting a letter using an unknown key element will result in unknown_character
     """
     return [chr(k ^ c) if k is not None else unknown_character for k, c in zip(key, ciphertext)]
+
+
+class CustomEdit(urwid.Edit):
+    def set_edit_pos(self, pos):
+        """
+        Overload the set_edit_pos function to restrict
+        the edit position to the end of the string, not 1 past the end
+        """
+        if pos >= len(self._edit_text):
+            pos = len(self._edit_text) - 1
+
+        super().set_edit_pos(pos)
+
+    def move_cursor_to_coords(self, size, x, y):
+        """
+        Overload the move_cursor_to_coords function because urwid does
+        not reuse set_edit_pos for this functionality
+        """
+        super().move_cursor_to_coords(size, x, y)
+        self.set_edit_pos(self.edit_pos)
 
 
 class DecryptionsListBox(urwid.ListBox):
@@ -51,7 +71,7 @@ class DecryptionsListBox(urwid.ListBox):
 
         body = urwid.SimpleFocusListWalker([
             urwid.Pile([
-                urwid.Edit(caption=f'{i}| ', edit_text=''.join(d), edit_pos=0) for i, d in enumerate(partial_decryptions)
+                CustomEdit(caption=f'{i}| ', edit_text=''.join(d), edit_pos=0) for i, d in enumerate(partial_decryptions)
             ])
         ])
         super(DecryptionsListBox, self).__init__(body)
@@ -60,11 +80,16 @@ class DecryptionsListBox(urwid.ListBox):
     def _edit_decryption(self, letter: str) -> None:
         """Edit a decryption by modifying the key"""
         ciphertext = self.ciphertexts[self.focus.focus_position]
+
+        # TODO: The edit position can go beyond the end of the string, this needs to be fixed
         index = self.focus[self.focus.focus_position].edit_pos
 
         # Backspace should delete the letter previous to the one selected
         if letter == BACKSPACE:
-            index = clamp(0, index - 1, len(ciphertext) - 1)
+            index = min(index - 1, len(ciphertext) - 1)
+            # We're trying to backspace from the start of the string, this is invalid
+            if index < 0:
+                return
 
         # Update the key
         self.key[index] = None if letter in REMOVE_KEYS else ord(letter) ^ ciphertext[index]
@@ -95,8 +120,44 @@ class DecryptionsListBox(urwid.ListBox):
                 key = NO_KEY
             else:
                 key = RIGHT
+        elif key == ESCAPE_KEY:
+            global_program.open_pop_up()
+            return
 
         super(DecryptionsListBox, self).keypress(size, key)
+
+
+class Menu(urwid.WidgetWrap):
+    """A dialog that appears with nothing but a close button """
+    signals = ['close']
+
+    def __init__(self):
+        export_button = urwid.Button("Export")
+        quit_button = urwid.Button("Quit")
+        close_button = urwid.Button("Close")
+        urwid.connect_signal(close_button, 'click', lambda button:self._emit("close"))
+        pile = urwid.LineBox(urwid.Pile([
+            export_button,
+            quit_button,
+            close_button
+        ]), title="Menu",title_align="center")
+
+        fill = urwid.Filler(pile)
+        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+
+
+class Program(urwid.PopUpLauncher):
+    def __init__(self, widget):
+        self.__super.__init__(widget)
+        #urwid.connect_signal(self.original_widget, 'click', lambda button: self.open_pop_up())
+
+    def create_pop_up(self):
+        pop_up = Menu()
+        urwid.connect_signal(pop_up, 'close', lambda button: self.close_pop_up())
+        return pop_up
+
+    def get_pop_up_parameters(self):
+        return {'left':50, 'top':25, 'overlay_width':32, 'overlay_height':7}
 
 
 def create_decryptions_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.LineBox:
@@ -119,12 +180,17 @@ def create_key_view(key: Key) -> urwid.LineBox:
 
 
 def create_main_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.Pile:
+    global global_program
+
     boxes = [
         ('weight', 1, create_decryptions_view(ciphertexts, key),),
         ('pack', create_key_view(key),)
     ]
-    return urwid.Pile(boxes)
+    pile = urwid.Pile(boxes)
+    global_program = Program(pile)
+
+    return global_program
 
 
 def interactive(ciphertexts: Iterable[bytearray], key: Iterable) -> None:
-    urwid.MainLoop(create_main_view(ciphertexts, Key(key))).run()
+    urwid.MainLoop(create_main_view(ciphertexts, Key(key)), pop_ups=True).run()
