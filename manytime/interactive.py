@@ -57,8 +57,9 @@ class CustomEdit(urwid.Edit):
         Overload the move_cursor_to_coords function because urwid does
         not reuse set_edit_pos for this functionality
         """
-        super().move_cursor_to_coords(size, x, y)
+        ret_val = super().move_cursor_to_coords(size, x, y)
         self.set_edit_pos(self.edit_pos)
+        return ret_val
 
 
 class DecryptionsListBox(urwid.ListBox):

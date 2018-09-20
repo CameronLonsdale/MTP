@@ -32,14 +32,11 @@ def track_spaces(text: bytearray) -> collections.Counter:
     return counter
 
 
-def recover_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
-    """
-    TODO: Describe this approach
-    """
-    longest_text = max(len(text) for text in ciphertexts)
-    key = [None for _ in range(longest_text)]
-
+def recover_partial_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
     # Identify key values by assuming that punctuation characters are most likely going to be spaces
+    shortest_text = min(len(text) for text in ciphertexts)
+    key = [None for _ in range(shortest_text)]
+
     for main_index, main_ciphertext in enumerate(ciphertexts):
         main_counter = collections.Counter()
 
@@ -55,5 +52,27 @@ def recover_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
         for index, count in main_counter.items():
             if count == len(ciphertexts) - 1:
                 key[index] = ord(' ') ^ main_ciphertext[index]
+
+    return key
+
+
+def recover_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
+    """
+    TODO: Describe this approach
+    """
+    sorted_ciphertexts = sorted(ciphertexts, key=len)
+    key = []
+
+    # We need a minium of two ciphertexts to compare
+    while len(sorted_ciphertexts) > 1:
+        key += recover_partial_key(sorted_ciphertexts)
+
+        # Remove first element from list as we want to compare
+        # all strings longer than that one
+        string_length = len(sorted_ciphertexts[0])
+        sorted_ciphertexts = sorted_ciphertexts[1:]
+        for i in range(len(sorted_ciphertexts)):
+            # Truncate all strings so we don't recalculate already known key bits
+            sorted_ciphertexts[i] = sorted_ciphertexts[i][string_length:]
 
     return key
