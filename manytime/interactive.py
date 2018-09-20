@@ -33,7 +33,13 @@ global_key_widget = None
 global_program = None
 
 
-def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_') -> Iterable[str]:
+# Colour palette to use
+palette = [
+    ('unknown', 'dark red,bold', 'black')
+]
+
+
+def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = ('unknown', '_')) -> Iterable[str]:
     """
     Decrypt ciphertext using key
     Decrypting a letter using an unknown key element will result in unknown_character
@@ -42,6 +48,10 @@ def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = '_
 
 
 class CustomEdit(urwid.Edit):
+    """
+    Custom Edit Widget
+    Because the original is not good enough
+    """
     def set_edit_pos(self, pos):
         """
         Overload the set_edit_pos function to restrict
@@ -61,6 +71,15 @@ class CustomEdit(urwid.Edit):
         self.set_edit_pos(self.edit_pos)
         return ret_val
 
+    def set_edit_text(self, text):
+        """
+        Overload the set_edit_text function because the original does not support markup.
+        Warning, there is a bug here that doesnt make it work with captions.
+        This should be fixed
+        """
+        self._edit_text, self._attrib = urwid.util.decompose_tagmarkup(text)
+        self._invalidate()
+
 
 class DecryptionsListBox(urwid.ListBox):
     """List of decryptions to be interacted with"""
@@ -72,7 +91,7 @@ class DecryptionsListBox(urwid.ListBox):
 
         body = urwid.SimpleFocusListWalker([
             urwid.Pile([
-                CustomEdit(caption=f'{i}| ', edit_text=''.join(d), edit_pos=0) for i, d in enumerate(partial_decryptions)
+                CustomEdit(edit_text=d, edit_pos=0) for i, d in enumerate(partial_decryptions)
             ])
         ])
         super(DecryptionsListBox, self).__init__(body)
@@ -98,10 +117,10 @@ class DecryptionsListBox(urwid.ListBox):
         # Update all decryptions
         new_decryptions = [partial_decrypt(self.key, c) for c in self.ciphertexts]
         for widget, decryption in zip(self.focus.widget_list, new_decryptions):
-            widget.edit_text = ''.join(decryption)
+            widget.set_edit_text(decryption)
 
         # Update displayed key value
-        global_key_widget.set_text(str(self.key))
+        global_key_widget.set_text(self.key.to_text())
 
 
     def keypress(self, size, key: str):
@@ -173,7 +192,7 @@ def create_decryptions_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid
 def create_key_view(key: Key) -> urwid.LineBox:
     """Create a global key text box with a border"""
     global global_key_widget
-    global_key_widget = urwid.Text(str(key))
+    global_key_widget = urwid.Text(key.to_text())
 
     # Draw line and title around the text
     widget = urwid.LineBox(global_key_widget, title="Key", title_align="right")
@@ -194,4 +213,4 @@ def create_main_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.Pile:
 
 
 def interactive(ciphertexts: Iterable[bytearray], key: Iterable) -> None:
-    urwid.MainLoop(create_main_view(ciphertexts, Key(key)), pop_ups=True).run()
+    urwid.MainLoop(create_main_view(ciphertexts, Key(key)), palette=palette, pop_ups=True).run()
