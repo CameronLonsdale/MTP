@@ -35,7 +35,8 @@ global_program = None
 
 # Colour palette to use
 palette = [
-    ('unknown', 'dark red,bold', 'black')
+    ('unknown', 'dark red,bold', 'black'),
+    ('line_num', 'light gray,bold', 'black'),
 ]
 
 
@@ -81,25 +82,41 @@ class CustomEdit(urwid.Edit):
         self._invalidate()
 
 
+def build_custom_container(line_num, text, max_number):
+    right_side_spaces = 3
+    left_side_spaces = 2
+    line_num_col_width = left_side_spaces + len(str(max_number)) + right_side_spaces
+
+    line_num_widget = urwid.Text(('line_num', str(line_num) + ' ' * right_side_spaces), align='right')
+    decryption_edit_widget = CustomEdit(edit_text=text)
+
+    return urwid.Columns([
+        (line_num_col_width, line_num_widget),
+        # I can't use pack here, it breaks the formatting
+        ('weight', 1, decryption_edit_widget)
+    ], focus_column=1)
+
+
 class DecryptionsListBox(urwid.ListBox):
     """List of decryptions to be interacted with"""
     def __init__(self, ciphertexts: Iterable[bytearray], key: Key):
+        global global_decryptions_widget
+
         self.ciphertexts = ciphertexts
         self.key = key
 
         partial_decryptions = [partial_decrypt(key, c) for c in ciphertexts]
 
+        max_number = len(ciphertexts) + 1
         body = urwid.SimpleFocusListWalker([
-            urwid.Pile([
-                CustomEdit(edit_text=d, edit_pos=0) for i, d in enumerate(partial_decryptions)
-            ])
+            build_custom_container(i + 1, d, max_number) for i, d in enumerate(partial_decryptions)
         ])
         super(DecryptionsListBox, self).__init__(body)
 
 
     def _edit_decryption(self, letter: str) -> None:
         """Edit a decryption by modifying the key"""
-        ciphertext = self.ciphertexts[self.focus.focus_position]
+        ciphertext = self.ciphertexts[self.focus_position]
 
         # TODO: The edit position can go beyond the end of the string, this needs to be fixed
         index = self.focus[self.focus.focus_position].edit_pos
@@ -116,8 +133,9 @@ class DecryptionsListBox(urwid.ListBox):
 
         # Update all decryptions
         new_decryptions = [partial_decrypt(self.key, c) for c in self.ciphertexts]
-        for widget, decryption in zip(self.focus.widget_list, new_decryptions):
-            widget.set_edit_text(decryption)
+        for row, decryption in zip(self.body, new_decryptions):
+            decryption_widget = row[1]
+            decryption_widget.set_edit_text(decryption)
 
         # Update displayed key value
         global_key_widget.set_text(self.key.to_text())
