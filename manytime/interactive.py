@@ -32,9 +32,12 @@ global_key_widget = None
 # Global program widget to allow for menu popup
 global_program = None
 
+global_decryptions_pile = None
+
 
 # Colour palette to use
 palette = [
+    ('line_number', 'light gray,bold', 'black'),
     ('unknown', 'dark red,bold', 'black')
 ]
 
@@ -80,22 +83,27 @@ class CustomEdit(urwid.Edit):
         self._edit_text, self._attrib = urwid.util.decompose_tagmarkup(text)
         self._invalidate()
 
+    def render(self, size, focus=False):
+        self.canv = super().render(size, focus)
+        #print(vars(self.canv))
+        return self.canv
+
 
 class DecryptionsListBox(urwid.ListBox):
     """List of decryptions to be interacted with"""
     def __init__(self, ciphertexts: Iterable[bytearray], key: Key):
+        global global_decryptions_pile
         self.ciphertexts = ciphertexts
         self.key = key
 
         partial_decryptions = [partial_decrypt(key, c) for c in ciphertexts]
 
-        body = urwid.SimpleFocusListWalker([
-            urwid.Pile([
-                CustomEdit(edit_text=d, edit_pos=0) for i, d in enumerate(partial_decryptions)
-            ])
-        ])
-        super(DecryptionsListBox, self).__init__(body)
+        global_decryptions_pile = urwid.Pile([
+            CustomEdit(edit_text=d, edit_pos=0) for i, d in enumerate(partial_decryptions)
+         ])
 
+        body = urwid.SimpleFocusListWalker([global_decryptions_pile])
+        super(DecryptionsListBox, self).__init__(body)
 
     def _edit_decryption(self, letter: str) -> None:
         """Edit a decryption by modifying the key"""
@@ -121,7 +129,6 @@ class DecryptionsListBox(urwid.ListBox):
 
         # Update displayed key value
         global_key_widget.set_text(self.key.to_text())
-
 
     def keypress(self, size, key: str):
         """
@@ -180,13 +187,97 @@ class Program(urwid.PopUpLauncher):
         return {'left':50, 'top':25, 'overlay_width':32, 'overlay_height':7}
 
 
+
+class LineNumber(urwid.Text):
+    def __init__(self, text, associated_line, *args, **kwargs):
+        self.associated_line = associated_line
+        super().__init__(text, **kwargs)
+
+    def render(self, size, focus=False):
+        #num_lines_to_cover = self.associated_line.canv.rows
+
+        #self.set_text(self.text + "\n")
+
+        return super().render(size, focus)
+        #canv = self.associated_line.render(size, focus)
+
+        # print(text)
+        # import sys
+        # sys.stdout.flush()
+
+
+    #     #text._text += '\n\n'
+
+    #     text = text_canvas._text
+    #     text.append(b"")
+
+    #     # attr = text_canvas._attr
+
+    #     # print(canv.rows())
+
+    #     #print(text)
+
+    #     # self._attr = attr
+    #     # self._cs = cs
+    #     # self.cursor = cursor
+    #     # self._text = text
+    #     # self._maxcol = maxcol
+
+    #     return urwid.TextCanvas(text, None, None, text_canvas.cursor, text_canvas._maxcol)
+
+        #  def __init__(self, text=None, attr=None, cs=None,
+        # cursor=None, maxcol=None, check_width=True):
+
+        # return text
+        # num_lines_to_cover = self.associated_line.canv.rows
+        # print(num_lines_to_cover)
+
+        # (maxcol,) = size
+        # text, attr = self.get_text()
+        # #assert isinstance(text, unicode)
+        # trans = self.get_line_translation( maxcol, (text,attr) )
+        # text = apply_text_layout(text, attr, trans, maxcol)
+
+        # num_lines_to_cover = self.associated_line.canv.rows
+
+
 def create_decryptions_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.LineBox:
     """Create a decryptions list box with a border"""
     widget = DecryptionsListBox(ciphertexts, key)
 
     # Draw line and title around the text
-    widget = urwid.LineBox(widget, title="Decryptions", title_align="right")
-    return widget
+    right_column = urwid.LineBox(widget, title="Decryptions", title_align="right", lline='', tlcorner=u'─', blcorner=u'─')
+
+    #print(global_decryptions_pile.rows())
+    #return
+
+    # Create column of line number
+    line_numbers = []
+    for index in global_decryptions_pile:
+        line_numbers.append(LineNumber(f'{index+1}  ', global_decryptions_pile[index], align='right'))
+
+    #line_numbers = list(urwid.Text(('line_number', f'{i+1}  '), align='right') for i in range(len(ciphertexts)))
+    #for decryption, line_number in zip(global_decryptions_pile, line_numbers):
+
+        # def new_rows(size, focus=False):
+        #     print(size)
+        #     return 2
+        #     #print(global_decryptions_pile[decryption].rows(size, focus))
+        #     #return global_decryptions_pile[decryption].rows(size, focus)
+
+        #print(line_number.rows((1,)))
+        #print(decryption)
+       # line_number.rows = new_rows
+
+    left_column = urwid.ListBox(line_numbers)
+    left_column._selectable = False
+
+    left_column = urwid.LineBox(left_column, rline=u'', brcorner=u'─', trcorner=u'─')
+
+    return urwid.Columns([
+        (6, left_column), # TODO, need to calcualte this based on the max length of the text in the list
+        ('weight', 16, right_column),
+    ])
 
 
 def create_key_view(key: Key) -> urwid.LineBox:
