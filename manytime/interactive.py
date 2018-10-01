@@ -27,16 +27,11 @@ REMOVE_KEYS = (BACKSPACE, DELETE)
 # Keys which are in urwid.command_map but we wish to use as input
 EXCLUDE_KEYS = (' ',)
 
-# Global key widget to allow for text updates after creation
-global_key_widget = None
-# Global program widget to allow for menu popup
-global_program = None
-
-
 # Colour palette to use
 palette = [
     ('unknown', 'dark red,bold', 'black'),
     ('line_num', 'light gray,bold', 'black'),
+    ('reversed', 'standout', 'black'),
 ]
 
 
@@ -82,7 +77,7 @@ class CustomEdit(urwid.Edit):
         self._invalidate()
 
 
-def build_custom_container(line_num, text, max_number):
+def numbered_row(line_num, text, max_number):
     right_side_spaces = 3
     left_side_spaces = 2
     line_num_col_width = left_side_spaces + len(str(max_number)) + right_side_spaces
@@ -99,17 +94,16 @@ def build_custom_container(line_num, text, max_number):
 
 class DecryptionsListBox(urwid.ListBox):
     """List of decryptions to be interacted with"""
-    def __init__(self, ciphertexts: Iterable[bytearray], key: Key):
-        global global_decryptions_widget
-
+    def __init__(self, parent, ciphertexts: Iterable[bytearray], key: Key):
         self.ciphertexts = ciphertexts
         self.key = key
+        self.parent = parent
 
         partial_decryptions = [partial_decrypt(key, c) for c in ciphertexts]
 
         max_number = len(ciphertexts) + 1
         body = urwid.SimpleFocusListWalker([
-            build_custom_container(i + 1, d, max_number) for i, d in enumerate(partial_decryptions)
+            numbered_row(i + 1, d, max_number) for i, d in enumerate(partial_decryptions)
         ])
         super(DecryptionsListBox, self).__init__(body)
 
@@ -138,7 +132,7 @@ class DecryptionsListBox(urwid.ListBox):
             decryption_widget.set_edit_text(decryption)
 
         # Update displayed key value
-        global_key_widget.set_text(self.key.to_text())
+        self.parent.key_widget.set_text(self.key.to_text())
 
 
     def keypress(self, size, key: str):
@@ -159,76 +153,120 @@ class DecryptionsListBox(urwid.ListBox):
             else:
                 key = RIGHT
         elif key == ESCAPE_KEY:
-            global_program.open_pop_up()
+            self.parent.open_menu()
             return
 
         super(DecryptionsListBox, self).keypress(size, key)
 
 
-class Menu(urwid.WidgetWrap):
-    """A dialog that appears with nothing but a close button """
-    signals = ['close']
-
-    def __init__(self):
-        export_button = urwid.Button("Export")
-        quit_button = urwid.Button("Quit")
-        close_button = urwid.Button("Close")
-        urwid.connect_signal(close_button, 'click', lambda button:self._emit("close"))
-        pile = urwid.LineBox(urwid.Pile([
-            export_button,
-            quit_button,
-            close_button
-        ]), title="Menu",title_align="center")
-
-        fill = urwid.Filler(pile)
-        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+class CustomButton(urwid.Button):
+    button_left = urwid.Text(">")
+    button_right = urwid.Text("")
 
 
-class Program(urwid.PopUpLauncher):
-    def __init__(self, widget):
-        self.__super.__init__(widget)
-        #urwid.connect_signal(self.original_widget, 'click', lambda button: self.open_pop_up())
+def create_menu(parent):
+    # # Header
+    # header = urwid.AttrMap(urwid.Text(['\n  ', ('text-heading', "Menu")]), 'heading')
+    # line = urwid.Divider(u'\N{LOWER ONE QUARTER BLOCK}')
+    # header = urwid.Pile([
+    #         header,
+    #         urwid.AttrMap(line, 'line'), 
+    #        #urwid.Divider()
 
-    def create_pop_up(self):
-        pop_up = Menu()
-        urwid.connect_signal(pop_up, 'close', lambda button: self.close_pop_up())
-        return pop_up
+    #     ])
 
-    def get_pop_up_parameters(self):
-        return {'left':50, 'top':25, 'overlay_width':32, 'overlay_height':7}
+    #header = urwid.AttrMap(header_text, 'banner')
+    #urwid.AttrMap(
+    #header = urwid.LineBox(header)
+
+    # Body
+    body = urwid.ListBox([
+        urwid.AttrMap(CustomButton("Export"), None, focus_map='reversed'),
+        urwid.AttrMap(CustomButton("Quit"), None, focus_map='reversed'),
+        urwid.AttrMap(CustomButton("Close", parent.reset_layout), None, focus_map='reversed')
+    ])
+    # body = urwid.Pile(urwid.SimpleListWalker([
+    #  
+    # ]))
+
+    # body_text = urwid.Text("buttons", align='center')
+    # body_filler = urwid.Filler(body_text, valign='top')
+    # body_padding = urwid.Padding(
+    #     body_filler,
+    #     left=1,
+    #     right=1
+    # )
+    # body = body_padding
+    #body = urwid.LineBox(body_padding)
+    #body = body_padding
+
+    # Footer
+    # footer = urwid.Button('x', parent.reset_layout)
+    # footer = urwid.AttrWrap(footer, 'selectable', 'focus')
+    # footer = urwid.GridFlow([footer], 8, 1, 1, 'center')
+
+    # Layout
+    layout = urwid.LineBox(body, title="Menu", title_align="center")
+
+    return layout
 
 
-def create_decryptions_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.LineBox:
-    """Create a decryptions list box with a border"""
-    widget = DecryptionsListBox(ciphertexts, key)
 
-    # Draw line and title around the text
-    widget = urwid.LineBox(widget, title="Decryptions", title_align="right")
-    return widget
+    # pile = urwid.LineBox(urwid.Pile([
+    #     export_button,
+    #     quit_button,
+    #     close_button
+    # ]), title="Menu",title_align="center")
 
-
-def create_key_view(key: Key) -> urwid.LineBox:
-    """Create a global key text box with a border"""
-    global global_key_widget
-    global_key_widget = urwid.Text(key.to_text())
-
-    # Draw line and title around the text
-    widget = urwid.LineBox(global_key_widget, title="Key", title_align="right")
-    return widget
+    # #return pile
+    # return urwid.Filler(pile)
 
 
-def create_main_view(ciphertexts: Iterable[bytearray], key: Key) -> urwid.Pile:
-    global global_program
+class Application():
+    def __init__(self, ciphertexts: Iterable[bytearray], key: Key):
 
-    boxes = [
-        ('weight', 1, create_decryptions_view(ciphertexts, key),),
-        ('pack', create_key_view(key),)
-    ]
-    pile = urwid.Pile(boxes)
-    global_program = Program(pile)
+        self.key_widget = urwid.Text(key.to_text())
+        self.decryption_widget = DecryptionsListBox(self, ciphertexts, key)
 
-    return global_program
+        self.main_screen = urwid.Pile([
+            ('weight', 1, urwid.LineBox(self.decryption_widget, title="Decryptions", title_align="left")),
+            ('pack',  urwid.LineBox(self.key_widget, title="Key", title_align="left"),)
+        ])
+
+        self.menu = create_menu(self)
+
+        # Create the body such that the menu is hidden on startup
+        self._body = self.main_screen
+
+        self._loop = urwid.MainLoop(
+            self._body,
+            palette=palette,
+            pop_ups=True
+        )
+
+
+    def run(self):
+        self._loop.run()
+
+    def open_menu(self):
+        w = urwid.Overlay(
+            self.menu,
+            self._body,
+            align='center',
+            width=22,
+            valign='middle',
+            height=7
+        )
+
+        self._loop.widget = w
+
+    def reset_layout(self, *args):
+        '''
+        Resets the console UI to the default layout
+        '''
+        self._loop.widget = self._body
+        self._loop.draw_screen()
 
 
 def interactive(ciphertexts: Iterable[bytearray], key: Iterable) -> None:
-    urwid.MainLoop(create_main_view(ciphertexts, Key(key)), palette=palette, pop_ups=True).run()
+    Application(ciphertexts, Key(key)).run()
