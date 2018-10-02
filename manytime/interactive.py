@@ -2,6 +2,7 @@
 Interactive module
 """
 
+import math
 import urwid
 
 from manytime.models import Key
@@ -160,66 +161,44 @@ class DecryptionsListBox(urwid.ListBox):
 
 
 class CustomButton(urwid.Button):
-    button_left = urwid.Text(">")
+    button_left = urwid.Text("")
     button_right = urwid.Text("")
+
+    def __init__(self, label, on_press=None, user_data=None):
+        """
+        Need to rewrite the init class for a button
+        in order to set the cursor_position to an unreachable value.
+        This stops the cursor from being rendered
+        """
+        self._label = urwid.SelectableIcon(text="", cursor_position=math.inf)
+        cols = urwid.Columns([
+            ('fixed', 1, self.button_left),
+            self._label,
+            ('fixed', 1, self.button_right)],
+            dividechars=1)
+
+        urwid.WidgetWrap.__init__(self, cols)
+
+        # The old way of listening for a change was to pass the callback
+        # in to the constructor.  Just convert it to the new way:
+        if on_press:
+            urwid.connect_signal(self, 'click', on_press, user_data)
+
+        self.set_label(label)
 
 
 def create_menu(parent):
-    # # Header
-    # header = urwid.AttrMap(urwid.Text(['\n  ', ('text-heading', "Menu")]), 'heading')
-    # line = urwid.Divider(u'\N{LOWER ONE QUARTER BLOCK}')
-    # header = urwid.Pile([
-    #         header,
-    #         urwid.AttrMap(line, 'line'), 
-    #        #urwid.Divider()
-
-    #     ])
-
-    #header = urwid.AttrMap(header_text, 'banner')
-    #urwid.AttrMap(
-    #header = urwid.LineBox(header)
-
-    # Body
+    """
+    Create the menu view
+    """
     body = urwid.ListBox([
         urwid.AttrMap(CustomButton("Export"), None, focus_map='reversed'),
         urwid.AttrMap(CustomButton("Quit"), None, focus_map='reversed'),
         urwid.AttrMap(CustomButton("Close", parent.reset_layout), None, focus_map='reversed')
     ])
-    # body = urwid.Pile(urwid.SimpleListWalker([
-    #  
-    # ]))
-
-    # body_text = urwid.Text("buttons", align='center')
-    # body_filler = urwid.Filler(body_text, valign='top')
-    # body_padding = urwid.Padding(
-    #     body_filler,
-    #     left=1,
-    #     right=1
-    # )
-    # body = body_padding
-    #body = urwid.LineBox(body_padding)
-    #body = body_padding
-
-    # Footer
-    # footer = urwid.Button('x', parent.reset_layout)
-    # footer = urwid.AttrWrap(footer, 'selectable', 'focus')
-    # footer = urwid.GridFlow([footer], 8, 1, 1, 'center')
-
-    # Layout
+ 
     layout = urwid.LineBox(body, title="Menu", title_align="center")
-
     return layout
-
-
-
-    # pile = urwid.LineBox(urwid.Pile([
-    #     export_button,
-    #     quit_button,
-    #     close_button
-    # ]), title="Menu",title_align="center")
-
-    # #return pile
-    # return urwid.Filler(pile)
 
 
 class Application():
@@ -243,7 +222,6 @@ class Application():
             palette=palette,
             pop_ups=True
         )
-
 
     def run(self):
         self._loop.run()
