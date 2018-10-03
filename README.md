@@ -6,10 +6,8 @@ MTP Interactive uses automated cryptanalysis to present a partial decryption whi
 
 ## Install
 
-The project must be cloned and installed
-
 ```
-pip install .
+pip install mtp
 ```
 
 ## Usage
@@ -26,10 +24,10 @@ TODO: Still changing
 
 ## Development
 
-Use a Python 3.6 virtual environment to develop on this project
+Use a Python 3.7 virtual environment to develop on this project
 
 ```
-virtualenv venv -p python3.6
+virtualenv venv -p python3.7
 source ./venv/bin/activate
 pip install -r requirements.txt
 ```

@@ -10,7 +10,7 @@ def main() -> None:
 	"""
 	Main entry point for CLI program
 	"""
-	parser = argparse.ArgumentParser(description='Break many time pad encryption')
+	parser = argparse.ArgumentParser(description='Break One-Time Pad Encryption with key reuse')
 	parser.add_argument('file', type=str, help='file containing hexadecimal ciphertexts, delimited by new lines')
 	args = parser.parse_args()
 
