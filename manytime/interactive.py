@@ -2,12 +2,21 @@
 Interactive module
 """
 
+import json
 import urwid
 from enum import Enum
 
 from manytime.models import Key, DecryptEdit, MenuButton
 
 from typing import Iterable, Optional
+
+
+def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: str = ('unknown', '_')) -> Iterable[str]:
+    """
+    Decrypt ciphertext using key
+    Decrypting a letter using an unknown key element will result in unknown_character
+    """
+    return [chr(k ^ c) if k is not None else unknown_character for k, c in zip(key, ciphertext)]
 
 
 # Since DecryptionsListBox holds most of the core logic of the application
@@ -42,7 +51,7 @@ class DecryptionsListBox(urwid.ListBox):
         """
         self.application = application
 
-        partial_decryptions = [self._partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
+        partial_decryptions = [partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
 
         body = urwid.SimpleFocusListWalker([
             self._create_decryption_with_line_number(index + 1, decryption)
@@ -68,13 +77,13 @@ class DecryptionsListBox(urwid.ListBox):
         self.application.key[index] = None if letter in self.REMOVE_KEYS else ord(letter) ^ ciphertext[index]
 
         # Update all decryptions
-        new_decryptions = [self._partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
+        new_decryptions = [partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
         for row, decryption in zip(self.body, new_decryptions):
             decryption_widget = row[1]
             decryption_widget.set_edit_text(decryption)
 
         # Update displayed key value
-        self.application.key_widget.set_text(self.application.key.to_text())
+        self.application.key_widget.set_text(self.application.key.to_formatted_text())
 
     def keypress(self, size, key: str):
         """
@@ -98,13 +107,6 @@ class DecryptionsListBox(urwid.ListBox):
             return
 
         super().keypress(size, key)
-
-    def _partial_decrypt(self, key: Key, ciphertext: bytearray, unknown_character: str = ('unknown', '_')) -> Iterable[str]:
-        """
-        Decrypt ciphertext using key
-        Decrypting a letter using an unknown key element will result in unknown_character
-        """
-        return [chr(k ^ c) if k is not None else unknown_character for k, c in zip(key, ciphertext)]
 
     def _create_decryption_with_line_number(self, line_number: int, text: str) -> urwid.Columns:
         """
@@ -140,7 +142,7 @@ class Application():
         self.ciphertexts = ciphertexts
         self.key = key
 
-        self.key_widget = urwid.Text(key.to_text())
+        self.key_widget = urwid.Text(key.to_formatted_text())
         self.decryption_widget = DecryptionsListBox(self)
 
         # The body is the visible element on the screen
@@ -190,7 +192,18 @@ class Application():
         """
         Export the state to a file
         """
-        raise NotImplementedError
+        file_name = "result.json"
+        state = {
+            "decryptions": [
+                ''.join(partial_decrypt(self.key, ciphertext, unknown_character='_')) for ciphertext in self.ciphertexts
+            ],
+            "key": ''.join([item for sublist in self.key.to_plain_text() for item in sublist])
+        }
+
+        with open(file_name, 'w') as f:
+            json.dump(state, f)
+
+        self.reset_layout()
 
     def _create_menu_widget(self) -> urwid.LineBox:
         """

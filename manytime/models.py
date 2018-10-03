@@ -5,7 +5,7 @@ Models module
 import urwid
 import math
 
-from typing import Optional
+from typing import Optional, List
 
 
 class Key:
@@ -13,13 +13,30 @@ class Key:
     A key used for decrypting OTP
     supports partial decryption
     """
-    def __init__(self, key: bytearray, unknown_character: tuple = ('unknown', '_')):
+    def __init__(self, key: bytearray, unknown_character: str = '_'):
         self.key = key
         self.unknown_character = unknown_character
 
-    def to_text(self):
+    def to_formatted_text(self) -> List:
+        """
+        Turn key into formatted text representation,
+        for being printed by urwid
+        """
+        unknown_char_formatted = ('unknown', self.unknown_character)
+        return self._to_text(unknown_char_formatted)
+
+    def to_plain_text(self) -> List:
+        """
+        Turn key into a plain text representation
+        """
+        return self._to_text(self.unknown_character)
+
+    def _to_text(self, unknown):
+        """
+        Private function to turn key into text representation
+        """
         # Using two unknown characters in this way in order to not merge two tuples
-        return [format(k, '02x') if k is not None else [self.unknown_character, self.unknown_character] for k in self.key]
+        return [format(k, '02x') if k is not None else [unknown, unknown] for k in self.key]
 
     def __iter__(self) -> iter:
         """Iterator wrapper over key"""
