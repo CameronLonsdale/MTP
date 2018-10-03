@@ -131,7 +131,7 @@ class Application():
     """
     palette = [
         ('unknown', 'dark red,bold', 'black'),
-        ('line_num', 'light gray,bold', 'black'),
+        ('line_number', 'light gray,bold', 'black'),
         ('reversed', 'standout', 'black'),
     ]
 
