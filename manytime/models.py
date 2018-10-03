@@ -2,6 +2,9 @@
 Models module
 """
 
+import urwid
+import math
+
 from typing import Optional
 
 
@@ -29,3 +32,65 @@ class Key:
     def __setitem__(self, index: int, value: Optional[str]) -> None:
         """Setter wrapper"""
         self.key[index] = value
+
+
+class DecryptEdit(urwid.Edit):
+    """
+    Edit Widget to use for a decryption
+    """
+    def set_edit_pos(self, pos):
+        """
+        Overload the set_edit_pos function to restrict
+        the edit position to the end of the string, not 1 past the end
+        """
+        if pos >= len(self._edit_text):
+            pos = len(self._edit_text) - 1
+
+        super().set_edit_pos(pos)
+
+    def move_cursor_to_coords(self, size, x, y):
+        """
+        Overload the move_cursor_to_coords function because urwid does
+        not reuse set_edit_pos for this functionality
+        """
+        ret_val = super().move_cursor_to_coords(size, x, y)
+        self.set_edit_pos(self.edit_pos)
+        return ret_val
+
+    def set_edit_text(self, text):
+        """
+        Overload the set_edit_text function because the original does not support markup.
+        Warning, there is a bug here that doesnt make it work with captions.
+        """
+        self._edit_text, self._attrib = urwid.util.decompose_tagmarkup(text)
+        self._invalidate()
+
+
+class MenuButton(urwid.Button):
+    """
+    A custom button to use in the menu
+    """
+    button_left = urwid.Text("")
+    button_right = urwid.Text("")
+
+    def __init__(self, label, on_press=None, user_data=None):
+        """
+        Need to rewrite the init class for a button
+        in order to set the cursor_position to an unreachable value.
+        This stops the cursor from being rendered.
+        """
+        self._label = urwid.SelectableIcon(text="", cursor_position=math.inf)
+        cols = urwid.Columns([
+            ('fixed', 1, self.button_left),
+            self._label,
+            ('fixed', 1, self.button_right)],
+            dividechars=1)
+
+        urwid.WidgetWrap.__init__(self, cols)
+
+        # The old way of listening for a change was to pass the callback
+        # in to the constructor.  Just convert it to the new way:
+        if on_press:
+            urwid.connect_signal(self, 'click', on_press, user_data)
+
+        self.set_label(label)
