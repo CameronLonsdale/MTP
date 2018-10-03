@@ -1,4 +1,4 @@
-# Many-Time Pad Interactive
+# MTP
 
 Keys in One-time pad encryption (OTP) should only be used once, when they get reused we can do a Many-time pad attack.
 
@@ -6,7 +6,7 @@ MTP Interactive uses automated cryptanalysis to present a partial decryption whi
 
 ## Install
 
-Currently no availably on PyPI, the project must be cloned and installed
+The project must be cloned and installed
 
 ```
 pip install .
@@ -15,7 +15,7 @@ pip install .
 ## Usage
 
 ```
-mtp-interactive examples/sample.ciphertexts
+mtp examples/sample.ciphertexts
 ```
 
 TODO: asciinema demo

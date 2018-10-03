@@ -1,1 +1,1 @@
-urwid
+urwid==2.0.1
