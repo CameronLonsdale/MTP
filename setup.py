@@ -2,18 +2,20 @@
 
 from setuptools import setup, find_packages
 
-
 setup(
-    name='mtp-interactive',
-    version='1.0.0',
-    description='Interactive Many Time Pad',
+    name='mtp',
+    version='0.0.2',
+    description='Many-Time Pad Interactive',
     author='Cameron Lonsdale',
     author_email='cameron.lonsdale@gmail.com',
-    url='https://github.com/CameronLonsdale/Many-Time-Pad-Interactive',
+    url='https://github.com/CameronLonsdale/MTP',
     license='MIT',
     packages=find_packages(),
     scripts=['cli.py'],
+    install_requires=[
+        "urwid==2.0.1"
+    ],
     entry_points={
-    	'console_scripts': ['mtp-interactive=cli:main']
+    	'console_scripts': ['mtp=cli:main']
     }
 )
