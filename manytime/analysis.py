@@ -1,6 +1,9 @@
+"""
+Analysis Module
+"""
+
 import string
 import collections
-
 
 from typing import Iterable, List, Optional
 
