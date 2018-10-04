@@ -55,6 +55,12 @@ class DecryptEdit(urwid.Edit):
     """
     Edit Widget to use for a decryption
     """
+
+    def __init__(self, parent, edit_text):
+        self.parent = parent
+        self.previous_event = (None, None)
+        super().__init__(edit_pos=0, edit_text=edit_text)
+
     def set_edit_pos(self, pos):
         """
         Overload the set_edit_pos function to restrict
@@ -64,15 +70,39 @@ class DecryptEdit(urwid.Edit):
             pos = len(self._edit_text) - 1
 
         super().set_edit_pos(pos)
+        
+        # Set the x pos (this handles left and right keys)
+        if self.previous_event[0] in ('left', 'right'):
+            self.parent.x_pos = self.get_cursor_coords(self.previous_event[1])[0]
 
     def move_cursor_to_coords(self, size, x, y):
         """
         Overload the move_cursor_to_coords function because urwid does
         not reuse set_edit_pos for this functionality
         """
-        ret_val = super().move_cursor_to_coords(size, x, y)
+        if self.previous_event[0] in ('home', 'end', 'mouse_event'):
+            # Allow the cursor to move freely
+            ret_val = super().move_cursor_to_coords(size, x, y)
+            self.set_edit_pos(self.edit_pos)
+
+            # And update parent value
+            self.parent.x_pos = self.get_cursor_coords(size)[0]
+
+            return ret_val
+        
+        # Otherwise, we move cursor to the max parent value
+        ret_val = super().move_cursor_to_coords(size, self.parent.x_pos, y)
+        # We set edit pos so that we don't go 1 past the end of the string
         self.set_edit_pos(self.edit_pos)
         return ret_val
+
+    def mouse_event(self, size, event, button, x, y, focus):
+        """
+        We overide mouse event in order to record the event
+        for use in move_cursor_to_coords
+        """
+        self.previous_event = ('mouse_event', size)
+        return super().mouse_event(size, event, button, x, y, focus)
 
     def set_edit_text(self, text):
         """
@@ -81,6 +111,14 @@ class DecryptEdit(urwid.Edit):
         """
         self._edit_text, self._attrib = urwid.util.decompose_tagmarkup(text)
         self._invalidate()
+
+    def keypress(self, size, key):
+        """
+        We overide keypress in order to record the event
+        for use in move_cursor_to_coords
+        """
+        self.previous_event = (key, size)
+        return super().keypress(size, key)
 
 
 class MenuButton(urwid.Button):

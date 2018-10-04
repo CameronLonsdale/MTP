@@ -50,6 +50,7 @@ class DecryptionsListBox(urwid.ListBox):
         Initialise the decryptions list box inside an application
         """
         self.application = application
+        self.x_pos = 0
 
         partial_decryptions = [partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
 
@@ -90,6 +91,7 @@ class DecryptionsListBox(urwid.ListBox):
         Custom handling of keyboard presses
         Key in this context refers to keyboard key, not cryptographic key
         """
+
         if urwid.command_map[key] is None or key in self.EXCLUDE_KEYS:
             self._edit_decryption(key)
             
@@ -118,7 +120,7 @@ class DecryptionsListBox(urwid.ListBox):
         line_num_col_width = left_side_spaces + len(str(max_line_number)) + right_side_spaces
 
         line_num_widget = urwid.Text(('line_number', str(line_number) + ' ' * right_side_spaces), align='right')
-        decryption_edit_widget = DecryptEdit(edit_text=text)
+        decryption_edit_widget = DecryptEdit(self, edit_text=text)
 
         return urwid.Columns([
             (line_num_col_width, line_num_widget),
