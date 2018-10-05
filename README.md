@@ -22,7 +22,19 @@ mtp examples/sample.ciphertexts
 
 ### Intstructions
 
-TODO: Still changing
+Cursor movement is similar to Sublime Text:
+ - Left, Right, Up and Down for simple movement
+ - Home, End, Page Up and Page Down for larger movement
+ - Left Click for jumping to mouse cursor
+
+Letters can be entered using the keyboard any time.
+
+The menu can be opened with the escape key. The "Export" button in the menu
+will write the JSON state of the decryption to a file named 'result.json'
+
+You can exit the program cleanly using the "Quit" menu button.
+
+Window resizing and text size changes are supported.
 
 ## Development
 
@@ -33,3 +45,5 @@ virtualenv venv -p python3.7
 source ./venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Pull Requests and Issues welcome!
