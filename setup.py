@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mtp',
-    version='0.0.2',
+    version='0.0.3',
     description='Many-Time Pad Interactive',
     author='Cameron Lonsdale',
     author_email='cameron.lonsdale@gmail.com',

@@ -17,17 +17,13 @@ def is_space(char: int) -> bool:
 
 
 def xor(a: bytearray, b: bytearray) -> List[int]:
-    """
-    XOR two bytearrays, truncates to shortest array
-    """
+    """XOR two bytearrays, truncates to shortest array"""
     return [c ^ d for c, d in zip(a, b)]
 
 
-def track_spaces(text: bytearray) -> collections.Counter:
-    """
-    Keep track of the spaces in text
-    """
-    counter = collections.Counter()
+def track_spaces(text: List[int]) -> collections.Counter:
+    """Keep track of the spaces in text"""
+    counter: collections.Counter = collections.Counter()
     for index, char in enumerate(text):
         if is_space(char):
             counter[index] += 1
@@ -36,12 +32,12 @@ def track_spaces(text: bytearray) -> collections.Counter:
 
 
 def recover_partial_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
-    # Identify key values by assuming that punctuation characters are most likely going to be spaces
+    """Using a set of ciphertexts, analyse for the space character in plaintext to recover part of the key"""
     shortest_text = min(len(text) for text in ciphertexts)
-    key = [None for _ in range(shortest_text)]
+    key: List[Optional[int]] = [None for _ in range(shortest_text)]
 
     for main_index, main_ciphertext in enumerate(ciphertexts):
-        main_counter = collections.Counter()
+        main_counter: collections.Counter = collections.Counter()
 
         for secondary_index, secondary_ciphertext in enumerate(ciphertexts):
             # Dont need to XOR itself
@@ -61,10 +57,16 @@ def recover_partial_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]
 
 def recover_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]:
     """
-    TODO: Describe this approach
+    Recovering the key consists of iteratively recovering partial keys,
+    and then stitching those together.
+
+    Each iteration we exclude the shortest ciphertext, then anaylyse
+    the remaining texts using the slice after the last removed text.
+    This way we get data on every part of the key, only that the
+    further along the key we recover, the less ciphertexts we have to analyse.
     """
     sorted_ciphertexts = sorted(ciphertexts, key=len)
-    key = []
+    key: List[Optional[int]] = []
 
     # We need a minium of two ciphertexts to compare
     while len(sorted_ciphertexts) > 1:

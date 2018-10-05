@@ -6,6 +6,8 @@ MTP Interactive uses automated cryptanalysis to present a partial decryption whi
 
 ## Install
 
+Python 3.7 required
+
 ```
 pip install mtp
 ```
@@ -16,7 +18,7 @@ pip install mtp
 mtp examples/sample.ciphertexts
 ```
 
-TODO: asciinema demo
+[![asciicast](https://asciinema.org/a/204705.png)](https://asciinema.org/a/204705)
 
 ### Intstructions
 
