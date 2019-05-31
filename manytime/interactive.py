@@ -162,7 +162,6 @@ class Application:
 
     def export(self, *args) -> None:
         """Export the state to a file"""
-        file_name = "result.json"
         state = {
             "decryptions": [
                 ''.join(partial_decrypt(self.key, ciphertext, unknown_character='_')) for ciphertext in self.ciphertexts
