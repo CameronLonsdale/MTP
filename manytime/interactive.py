@@ -116,10 +116,11 @@ class Application:
         ('reversed', 'standout', 'black'),
     ]
 
-    def __init__(self, ciphertexts: Iterable[bytearray], key: Key) -> None:
+    def __init__(self, ciphertexts: Iterable[bytearray], key: Key, results_filename: str) -> None:
         # Store the values in the application for ease of exporting
         self.ciphertexts = ciphertexts
         self.key = key
+        self.results_filename = results_filename
 
         self.key_widget = urwid.Text(key.to_formatted_text())
         self.decryption_widget = DecryptionsListBox(self)
@@ -169,7 +170,7 @@ class Application:
             "key": ''.join([item for sublist in self.key.to_plain_text() for item in sublist])
         }
 
-        with open(file_name, 'w') as f:
+        with open(self.results_filename, 'w') as f:
             json.dump(state, f)
 
         # Hide the menu
@@ -186,6 +187,6 @@ class Application:
         return urwid.LineBox(body, title="Menu", title_align="center")
 
 
-def interactive(ciphertexts: Iterable[bytearray], key: List[Optional[int]]) -> None:
+def interactive(ciphertexts: Iterable[bytearray], key: List[Optional[int]], results_filename: str) -> None:
     """Start an interactive session to decrypt ciphertexts using key"""
-    Application(ciphertexts, Key(key)).run()
+    Application(ciphertexts, Key(key), results_filename).run()

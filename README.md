@@ -30,7 +30,7 @@ Cursor movement is similar to Sublime Text:
 Letters can be entered using the keyboard any time.
 
 The menu can be opened with the escape key. The "Export" button in the menu
-will write the JSON state of the decryption to a file named 'result.json'
+will write the JSON state of the decryption to a file named 'result.json' by default. Use the -o flag to specify the desired filename for export.
 
 You can exit the program cleanly using the "Quit" menu button.
 
