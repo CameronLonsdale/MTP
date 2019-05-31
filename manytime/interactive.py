@@ -57,7 +57,11 @@ class DecryptionsListBox(urwid.ListBox):
                 return
 
         # Update the key
-        self.application.key[index] = None if letter in self.REMOVE_KEYS else ord(letter) ^ ciphertext[index]
+        if len(letter) == 1 or letter in self.REMOVE_KEYS:
+            # Letters which are longer, for example "shift left" are not key presses we want to deal with.
+            # All special characters are handled elsewhere, this code handles letters and delete keys
+            # therefore we ignore all others.
+            self.application.key[index] = None if letter in self.REMOVE_KEYS or len(letter) > 1 else ord(letter) ^ ciphertext[index]
 
         # Update all decryptions
         new_decryptions = [partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
