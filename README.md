@@ -6,7 +6,7 @@ MTP Interactive uses automated cryptanalysis to present a partial decryption whi
 
 ## Install
 
-Python 3.7 required
+Python 3.7+ required
 
 ```
 pip3 install mtp
@@ -38,10 +38,10 @@ Window resizing and text size changes are supported.
 
 ## Development
 
-Use a Python 3.7 virtual environment to develop on this project
+Use a Python 3.11 virtual environment to develop on this project
 
 ```
-virtualenv venv -p python3.7
+virtualenv venv -p python3.11
 source ./venv/bin/activate
 pip install -r requirements.txt
 ```

@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mtp',
-    version='1.0.0',
+    version='1.1.0',
     description='Many-Time Pad Interactive',
     author='Cameron Lonsdale',
     author_email='cameron.lonsdale@gmail.com',
@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     scripts=['cli.py'],
     install_requires=[
-        "urwid==2.0.1"
+        "urwid==2.1.2"
     ],
     entry_points={
     	'console_scripts': ['mtp=cli:main']
