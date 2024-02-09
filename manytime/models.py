@@ -7,7 +7,7 @@ import math
 
 from manytime import keys
 
-from typing import Optional, List, Tuple, Union, Iterator
+from typing import Optional, List, Tuple, Union, Iterator, Any
 
 
 class Key:

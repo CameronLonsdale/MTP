@@ -4,7 +4,6 @@ Interactive module
 
 import json
 import urwid
-from enum import Enum
 
 from manytime import keys
 
@@ -13,7 +12,8 @@ from manytime.models import Key, DecryptEdit, MenuButton
 from typing import Iterable, Optional, Tuple, NoReturn, Union, Any, List
 
 
-def partial_decrypt(key: Key, ciphertext: bytearray, unknown_character: Union[Tuple[str, str], str] = ('unknown', '_')) -> Iterable:
+def partial_decrypt(key: Key, ciphertext: bytearray,
+                    unknown_character: Union[Tuple[str, str], str] = ('unknown', '_')) -> Iterable:
     """
     Decrypt ciphertext using key
     Decrypting a letter using an unknown key element will result in unknown_character
@@ -61,7 +61,8 @@ class DecryptionsListBox(urwid.ListBox):
             # Letters which are longer, for example "shift left" are not key presses we want to deal with.
             # All special characters are handled elsewhere, this code handles letters and delete keys
             # therefore we ignore all others.
-            self.application.key[index] = None if letter in self.REMOVE_KEYS or len(letter) > 1 else ord(letter) ^ ciphertext[index]
+            self.application.key[index] = None if (letter in self.REMOVE_KEYS or
+                                                   len(letter) > 1) else ord(letter) ^ ciphertext[index]
 
         # Update all decryptions
         new_decryptions = [partial_decrypt(self.application.key, c) for c in self.application.ciphertexts]
