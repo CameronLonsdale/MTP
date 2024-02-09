@@ -45,9 +45,10 @@ def recover_partial_key(ciphertexts: Iterable[bytearray]) -> List[Optional[int]]
                 # Although we know it is a space we don't know which ciphertext it came from
                 main_counter.update(track_spaces(xor(main_ciphertext, secondary_ciphertext)))
 
-        # Now we have tracked all the possible spaces we have seen, anchored to the index of the main ciphertext where we saw it
-        # Therefore, if we have seen a space len(ciphertexts) - 1 times in a certain position, we know that because it was present
-        # when XORd with each ciphertext, that it must have come from the main_ciphertext. Meaning, that position is a space in the main_plaintext
+        # Now we have tracked all the possible spaces we have seen, anchored to the index of the main ciphertext
+        # where we saw it Therefore, if we have seen a space len(ciphertexts) - 1 times in a certain position,
+        # we know that because it was present when XORd with each ciphertext, that it must have come from the
+        # main_ciphertext. Meaning, that position is a space in the main_plaintext
         for index, count in main_counter.items():
             if count == len(ciphertexts) - 1:
                 key[index] = ord(' ') ^ main_ciphertext[index]
