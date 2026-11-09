@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     scripts=['cli.py'],
     install_requires=[
-        "urwid==2.1.2"
+        "urwid==4.0.7"
     ],
     entry_points={
     	'console_scripts': ['mtp=cli:main']
